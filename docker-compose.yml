@@ -1,0 +1,7 @@
+services:
+  discord-mcp:
+    build: .
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - DISCORD_DEFAULT_GUILD_ID=${DISCORD_DEFAULT_GUILD_ID:-}
+    stdin_open: true
