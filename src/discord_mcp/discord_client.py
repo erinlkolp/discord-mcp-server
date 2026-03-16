@@ -41,7 +41,7 @@ class DiscordClient:
         try:
             resp = await self._http.request(method, path, **kwargs)
         except httpx.HTTPError as e:
-            raise DiscordAPIError(f"Network error: {e}") from e
+            raise DiscordAPIError("Network error communicating with Discord") from e
         if resp.status_code == 429 and _retries > 0:
             body = {}
             try:
@@ -55,25 +55,33 @@ class DiscordClient:
         self._check_response(resp)
         return resp
 
+    _SAFE_ERROR_MESSAGES: dict[int, str] = {
+        400: "Bad request",
+        401: "Authentication failed",
+        403: "Permission denied",
+        404: "Resource not found",
+    }
+
     def _check_response(self, resp: httpx.Response) -> None:
         if resp.is_success:
             return
-        try:
-            body = resp.json()
-            message = body.get("message", resp.text)
-        except Exception:
-            message = resp.text
 
         if resp.status_code == 429:
-            retry_after = body.get("retry_after", "unknown") if isinstance(body, dict) else "unknown"
+            body: dict = {}
+            try:
+                body = resp.json()
+            except Exception:
+                pass
+            retry_after = body.get("retry_after", "unknown")
             raise DiscordAPIError(
                 f"You are being rate limited. retry_after: {retry_after}",
                 status_code=429,
             )
-        raise DiscordAPIError(
-            f"Discord API error {resp.status_code}: {message}",
-            status_code=resp.status_code,
+
+        safe_message = self._SAFE_ERROR_MESSAGES.get(
+            resp.status_code, f"Discord API error {resp.status_code}"
         )
+        raise DiscordAPIError(safe_message, status_code=resp.status_code)
 
     async def list_all_channels(self, guild_id: str) -> list[Channel]:
         """Fetch all channels (all types) for a guild. Used for category name resolution."""

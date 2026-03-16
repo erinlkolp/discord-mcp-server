@@ -135,7 +135,7 @@ class TestErrorHandling:
                 403, json={"message": "Missing Access", "code": 50001}
             )
         )
-        with pytest.raises(DiscordAPIError, match="Missing Access"):
+        with pytest.raises(DiscordAPIError, match="Permission denied"):
             await client.list_channels("111222333444555666")
 
     @respx.mock
@@ -146,7 +146,7 @@ class TestErrorHandling:
                 401, json={"message": "401: Unauthorized", "code": 0}
             )
         )
-        with pytest.raises(DiscordAPIError, match="Unauthorized"):
+        with pytest.raises(DiscordAPIError, match="Authentication failed"):
             await client.list_channels("111222333444555666")
 
     @respx.mock

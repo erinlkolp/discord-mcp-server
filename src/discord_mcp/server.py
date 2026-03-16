@@ -4,6 +4,8 @@ import sys
 
 from mcp.server.fastmcp import FastMCP
 
+from pydantic import ValidationError
+
 from discord_mcp.discord_client import DiscordClient, DiscordAPIError
 from discord_mcp.types import Embed, EmbedField
 
@@ -112,6 +114,11 @@ async def discord_list_channels(guild_id: str) -> str:
         return str(channels)
     except DiscordAPIError as e:
         return f"Error: {e}"
+    except ValidationError as e:
+        return f"Error: {e.error_count()} validation error(s) in response data"
+    except Exception:
+        logger.exception("Unexpected error in discord_list_channels")
+        return "Error: an unexpected error occurred"
 
 
 @mcp.tool()
@@ -134,6 +141,11 @@ async def discord_send_message(
         return f"Message sent. ID: {result['message_id']}, Timestamp: {result['timestamp']}"
     except DiscordAPIError as e:
         return f"Error: {e}"
+    except ValidationError as e:
+        return f"Error: {e.error_count()} validation error(s) in response data"
+    except Exception:
+        logger.exception("Unexpected error in discord_send_message")
+        return "Error: an unexpected error occurred"
 
 
 @mcp.tool()
@@ -156,6 +168,11 @@ async def discord_read_messages(
         return str(messages)
     except DiscordAPIError as e:
         return f"Error: {e}"
+    except ValidationError as e:
+        return f"Error: {e.error_count()} validation error(s) in response data"
+    except Exception:
+        logger.exception("Unexpected error in discord_read_messages")
+        return "Error: an unexpected error occurred"
 
 
 @mcp.tool()
@@ -188,6 +205,11 @@ async def discord_send_embed(
         return f"Embed sent. ID: {result['message_id']}, Timestamp: {result['timestamp']}"
     except DiscordAPIError as e:
         return f"Error: {e}"
+    except ValidationError as e:
+        return f"Error: {e.error_count()} validation error(s) in response data"
+    except Exception:
+        logger.exception("Unexpected error in discord_send_embed")
+        return "Error: an unexpected error occurred"
 
 
 def main():
