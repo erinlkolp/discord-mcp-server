@@ -1,6 +1,9 @@
 import logging
 import os
+import select
+import signal
 import sys
+import threading
 
 from mcp.server.fastmcp import FastMCP
 
@@ -29,6 +32,31 @@ def _get_client() -> DiscordClient:
             raise DiscordAPIError("DISCORD_BOT_TOKEN environment variable is not set")
         _client = DiscordClient(bot_token=token)
     return _client
+
+
+def _handle_shutdown(signum: int, _frame: object) -> None:
+    logger.info("Received signal %s, shutting down", signal.Signals(signum).name)
+    raise SystemExit(0)
+
+
+def _watch_stdin() -> None:
+    """Detect when the parent closes the stdin pipe and trigger shutdown.
+
+    Uses poll() to watch for POLLHUP without consuming any bytes, so
+    the MCP stdio transport keeps working normally.
+    """
+    try:
+        poller = select.poll()
+        poller.register(sys.stdin.fileno(), select.POLLHUP)
+        while True:
+            for _fd, event in poller.poll(1000):
+                if event & (select.POLLHUP | select.POLLERR):
+                    logger.info("stdin closed, shutting down")
+                    os.kill(os.getpid(), signal.SIGTERM)
+                    return
+    except (OSError, ValueError):
+        logger.info("stdin watch failed, shutting down")
+        os.kill(os.getpid(), signal.SIGTERM)
 
 
 def resolve_guild_id(guild_id: str | None) -> str | None:
@@ -213,6 +241,12 @@ async def discord_send_embed(
 
 
 def main():
+    signal.signal(signal.SIGTERM, _handle_shutdown)
+    signal.signal(signal.SIGINT, _handle_shutdown)
+
+    watcher = threading.Thread(target=_watch_stdin, daemon=True)
+    watcher.start()
+
     token = os.environ.get("DISCORD_BOT_TOKEN", "")
     guild = os.environ.get("DISCORD_DEFAULT_GUILD_ID")
     logger.info("Discord MCP server starting")

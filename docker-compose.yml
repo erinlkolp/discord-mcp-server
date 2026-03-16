@@ -5,3 +5,5 @@ services:
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - DISCORD_DEFAULT_GUILD_ID=${DISCORD_DEFAULT_GUILD_ID:-}
     stdin_open: true
+    init: true
+    stop_grace_period: 5s
