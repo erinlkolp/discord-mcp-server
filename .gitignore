@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.egg-info/
 .env
+.mcp.json
 .pytest_cache/
 dist/
 build/

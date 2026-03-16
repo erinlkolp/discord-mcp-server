@@ -12,9 +12,18 @@ Discord MCP server — exposes Discord REST API v10 as tools in Claude Code via 
 
 ## Project Structure
 
-- `src/discord_mcp/types.py` — Pydantic models for API responses
-- `src/discord_mcp/discord_client.py` — Async Discord REST API wrapper
-- `src/discord_mcp/server.py` — MCP tool definitions and handlers
+```
+src/discord_mcp/
+├── types.py           — Pydantic models (Channel, Message, SendResult, Embed)
+├── discord_client.py  — Async Discord REST API wrapper (httpx)
+└── server.py          — MCP tool definitions and handler functions
+
+tests/
+├── conftest.py           — Shared fixtures (sample channels, messages)
+├── test_types.py         — Pydantic model tests (7 tests)
+├── test_discord_client.py — API client tests with respx mocking (14 tests)
+└── test_server.py        — MCP tool handler tests (7 tests)
+```
 
 ## Commands
 
@@ -38,9 +47,18 @@ docker compose run --rm -i discord-mcp
 - `DISCORD_BOT_TOKEN` (required) — Bot auth token
 - `DISCORD_DEFAULT_GUILD_ID` (optional) — Default guild for tool calls
 
+## MCP Tools
+
+- `discord_list_channels` — List text channels in a guild
+- `discord_send_message` — Send plain text to a channel
+- `discord_read_messages` — Read recent messages from a channel
+- `discord_send_embed` — Send a rich embed to a channel
+
 ## Conventions
 
 - All Discord API interaction goes through `DiscordClient` — never call httpx directly from server.py
-- Tool handlers are separated from MCP decorators for testability
+- Tool handlers (`handle_*` functions) are separated from `@mcp.tool()` decorators for testability
 - Use `DiscordAPIError` for all error conditions
 - Tests mock HTTP with `respx`, never hit real Discord API
+- Channel resolution is case-insensitive; numeric strings are treated as IDs
+- Guild ID fallback chain: explicit parameter → env var → None

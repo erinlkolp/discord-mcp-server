@@ -26,14 +26,14 @@ A Python MCP (Model Context Protocol) server that lets you interact with Discord
 
 ```bash
 git clone <your-repo-url>
-cd slack-claude-skill  # Note: directory name is a legacy artifact; this is a Discord MCP server
+cd discord-mcp-server
 ```
 
 ### 2. Set up environment variables
 
 ```bash
 cp .env.example .env
-# Edit .env and add your DISCORD_BOT_TOKEN
+# Edit .env and add your DISCORD_BOT_TOKEN and optionally DISCORD_DEFAULT_GUILD_ID
 ```
 
 ### 3. Build the Docker image
@@ -50,11 +50,11 @@ Add the following to your Claude Code MCP settings. You can configure this in
 ```json
 {
   "mcpServers": {
-    "discord": {
+    "discord-mcp": {
       "command": "docker",
       "args": [
         "compose",
-        "-f", "/absolute/path/to/slack-claude-skill/docker-compose.yml",
+        "-f", "/absolute/path/to/discord-mcp-server/docker-compose.yml",
         "run", "--rm", "-i", "discord-mcp"
       ],
       "env": {
@@ -66,7 +66,7 @@ Add the following to your Claude Code MCP settings. You can configure this in
 }
 ```
 
-> **Note:** Replace `/absolute/path/to/slack-claude-skill` with the actual
+> **Note:** Replace `/absolute/path/to/discord-mcp-server` with the actual
 > absolute path to this project on your machine. Replace the token and guild ID
 > with your actual values.
 
@@ -137,23 +137,34 @@ Sends a rich embed message to a channel.
 | `DISCORD_BOT_TOKEN` | Yes | Bot token from Discord Developer Portal |
 | `DISCORD_DEFAULT_GUILD_ID` | No | Default server ID for all tool calls |
 
+## Architecture
+
+```
+Claude Code  ←stdio→  MCP Server (Python)  ←HTTPS→  Discord API v10
+```
+
+- **`src/discord_mcp/types.py`** — Pydantic models for API responses (Channel, Message, SendResult, Embed)
+- **`src/discord_mcp/discord_client.py`** — Async Discord REST API wrapper using httpx
+- **`src/discord_mcp/server.py`** — MCP tool definitions and handler functions
+
+Key design decisions:
+- All Discord API interaction goes through `DiscordClient` — never call httpx directly from server.py
+- Tool handlers are separated from `@mcp.tool()` decorators for testability
+- Channel names are resolved case-insensitively via the Discord API
+- Guild ID follows a fallback chain: explicit parameter → `DISCORD_DEFAULT_GUILD_ID` env var → None
+
 ## Development
 
 ### Running locally (without Docker)
 
 ```bash
-# Create a virtual environment
 python -m venv .venv
 source .venv/bin/activate
-
-# Install with dev dependencies
 pip install -e ".[dev]"
 
-# Set environment variables
 export DISCORD_BOT_TOKEN=your-token
 export DISCORD_DEFAULT_GUILD_ID=your-guild-id
 
-# Run the server
 discord-mcp
 ```
 
@@ -163,6 +174,8 @@ discord-mcp
 pip install -e ".[dev]"
 pytest tests/ -v
 ```
+
+Tests use `respx` to mock httpx requests — no real Discord API calls are made.
 
 ## License
 

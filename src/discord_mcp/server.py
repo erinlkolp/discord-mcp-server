@@ -1,9 +1,17 @@
+import logging
 import os
-import asyncio
+import sys
 
 from mcp.server.fastmcp import FastMCP
 
 from discord_mcp.discord_client import DiscordClient, DiscordAPIError
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    stream=sys.stderr,
+)
+logger = logging.getLogger("discord-mcp")
 
 mcp = FastMCP("discord")
 
@@ -181,6 +189,12 @@ async def discord_send_embed(
 
 
 def main():
+    token = os.environ.get("DISCORD_BOT_TOKEN", "")
+    guild = os.environ.get("DISCORD_DEFAULT_GUILD_ID")
+    logger.info("Discord MCP server starting")
+    logger.info("DISCORD_BOT_TOKEN: %s", "set" if token else "NOT SET")
+    logger.info("DISCORD_DEFAULT_GUILD_ID: %s", guild or "not set")
+    logger.info("Tools: discord_list_channels, discord_send_message, discord_read_messages, discord_send_embed")
     mcp.run(transport="stdio")
 
 
