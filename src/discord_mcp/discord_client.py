@@ -3,7 +3,7 @@ import re
 
 import httpx
 
-from discord_mcp.types import Channel, Message, SendResult
+from discord_mcp.types import Channel, Message, SendResult, MAX_MESSAGE_CONTENT
 
 BASE_URL = "https://discord.com/api/v10"
 
@@ -113,6 +113,10 @@ class DiscordClient:
         embed: dict | None = None,
     ) -> SendResult:
         _validate_snowflake(channel_id, "channel_id")
+        if content is not None and len(content) > MAX_MESSAGE_CONTENT:
+            raise DiscordAPIError(
+                f"Message content exceeds {MAX_MESSAGE_CONTENT} characters"
+            )
         payload: dict = {}
         if content is not None:
             payload["content"] = content

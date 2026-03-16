@@ -1,4 +1,10 @@
-from discord_mcp.types import Channel, Message, MessageAuthor, SendResult, Embed, EmbedField
+import pytest
+
+from discord_mcp.types import (
+    Channel, Message, MessageAuthor, SendResult, Embed, EmbedField,
+    MAX_EMBED_TITLE, MAX_EMBED_DESCRIPTION, MAX_EMBED_FIELD_NAME,
+    MAX_EMBED_FIELD_VALUE, MAX_EMBED_FIELDS, MAX_EMBED_TOTAL,
+)
 
 
 class TestChannel:
@@ -72,3 +78,33 @@ class TestEmbed:
         assert embed.description is None
         assert embed.color is None
         assert embed.fields == []
+
+    def test_embed_title_too_long(self):
+        with pytest.raises(ValueError, match="title exceeds"):
+            Embed(title="x" * (MAX_EMBED_TITLE + 1))
+
+    def test_embed_description_too_long(self):
+        with pytest.raises(ValueError, match="description exceeds"):
+            Embed(title="ok", description="x" * (MAX_EMBED_DESCRIPTION + 1))
+
+    def test_embed_too_many_fields(self):
+        fields = [EmbedField(name="f", value="v")] * (MAX_EMBED_FIELDS + 1)
+        with pytest.raises(ValueError, match="maximum of"):
+            Embed(title="ok", fields=fields)
+
+    def test_embed_total_length_exceeded(self):
+        # Use multiple fields to exceed 6000 total without hitting per-field limits
+        fields = [
+            EmbedField(name="n", value="x" * MAX_EMBED_FIELD_VALUE)
+            for _ in range(6)
+        ]
+        with pytest.raises(ValueError, match="total content exceeds"):
+            Embed(title="x" * MAX_EMBED_TITLE, fields=fields)
+
+    def test_embed_field_name_too_long(self):
+        with pytest.raises(ValueError, match="Field name exceeds"):
+            EmbedField(name="x" * (MAX_EMBED_FIELD_NAME + 1), value="ok")
+
+    def test_embed_field_value_too_long(self):
+        with pytest.raises(ValueError, match="Field value exceeds"):
+            EmbedField(name="ok", value="x" * (MAX_EMBED_FIELD_VALUE + 1))

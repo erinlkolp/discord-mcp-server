@@ -108,6 +108,13 @@ class TestReadMessages:
         assert respx.calls[0].request.url.params["limit"] == "50"
 
 
+class TestContentValidation:
+    @pytest.mark.asyncio
+    async def test_send_message_content_too_long(self, client):
+        with pytest.raises(DiscordAPIError, match="exceeds 2000 characters"):
+            await client.send_message("100", content="x" * 2001)
+
+
 class TestErrorHandling:
     @respx.mock
     @pytest.mark.asyncio
