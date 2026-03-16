@@ -153,6 +153,15 @@ Key design decisions:
 - Channel names are resolved case-insensitively via the Discord API
 - Guild ID follows a fallback chain: explicit parameter → `DISCORD_DEFAULT_GUILD_ID` env var → None
 
+## Security
+
+- **Input validation** — Guild IDs and channel IDs are validated as numeric Discord snowflakes before use in API URLs
+- **Embed sanitization** — Embed fields are validated through Pydantic models (`EmbedField`), preventing injection of arbitrary embed properties
+- **Error message hygiene** — Failed channel lookups do not enumerate available channels, preventing server structure disclosure
+- **Rate limit handling** — The client retries once with backoff on 429 responses (capped at 5s)
+- **Docker hardening** — Container runs as a non-root `appuser`
+- **Dependency pinning** — Runtime dependencies use compatible-release (`~=`) constraints to prevent unexpected breaking changes
+
 ## Development
 
 ### Running locally (without Docker)

@@ -16,10 +16,10 @@ class TestListChannels:
     @respx.mock
     @pytest.mark.asyncio
     async def test_list_text_channels(self, client, sample_channels):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(200, json=sample_channels)
         )
-        channels = await client.list_channels("guild1")
+        channels = await client.list_channels("111222333444555666")
         # Should exclude voice (type 2) and category (type 4)
         assert len(channels) == 2
         assert channels[0].name == "general"
@@ -30,19 +30,19 @@ class TestResolveChannel:
     @respx.mock
     @pytest.mark.asyncio
     async def test_resolve_by_name(self, client, sample_channels):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(200, json=sample_channels)
         )
-        channel_id = await client.resolve_channel("general", "guild1")
+        channel_id = await client.resolve_channel("general", "111222333444555666")
         assert channel_id == "100"
 
     @respx.mock
     @pytest.mark.asyncio
     async def test_resolve_by_name_case_insensitive(self, client, sample_channels):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(200, json=sample_channels)
         )
-        channel_id = await client.resolve_channel("General", "guild1")
+        channel_id = await client.resolve_channel("General", "111222333444555666")
         assert channel_id == "100"
 
     @pytest.mark.asyncio
@@ -53,11 +53,11 @@ class TestResolveChannel:
     @respx.mock
     @pytest.mark.asyncio
     async def test_resolve_name_not_found(self, client, sample_channels):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(200, json=sample_channels)
         )
-        with pytest.raises(DiscordAPIError, match="Channel 'nonexistent' not found"):
-            await client.resolve_channel("nonexistent", "guild1")
+        with pytest.raises(DiscordAPIError, match="Channel 'nonexistent' not found in guild"):
+            await client.resolve_channel("nonexistent", "111222333444555666")
 
     @pytest.mark.asyncio
     async def test_resolve_name_without_guild_id(self, client):
@@ -112,41 +112,41 @@ class TestErrorHandling:
     @respx.mock
     @pytest.mark.asyncio
     async def test_rate_limit(self, client):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(
                 429, json={"message": "You are being rate limited.", "retry_after": 1.5}
             )
         )
         with pytest.raises(DiscordAPIError, match="rate limited.*retry_after.*1.5"):
-            await client.list_channels("guild1")
+            await client.list_channels("111222333444555666")
 
     @respx.mock
     @pytest.mark.asyncio
     async def test_permission_error(self, client):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(
                 403, json={"message": "Missing Access", "code": 50001}
             )
         )
         with pytest.raises(DiscordAPIError, match="Missing Access"):
-            await client.list_channels("guild1")
+            await client.list_channels("111222333444555666")
 
     @respx.mock
     @pytest.mark.asyncio
     async def test_invalid_token(self, client):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             return_value=httpx.Response(
                 401, json={"message": "401: Unauthorized", "code": 0}
             )
         )
         with pytest.raises(DiscordAPIError, match="Unauthorized"):
-            await client.list_channels("guild1")
+            await client.list_channels("111222333444555666")
 
     @respx.mock
     @pytest.mark.asyncio
     async def test_network_error(self, client):
-        respx.get(f"{BASE}/guilds/guild1/channels").mock(
+        respx.get(f"{BASE}/guilds/111222333444555666/channels").mock(
             side_effect=httpx.ConnectError("Connection refused")
         )
         with pytest.raises(DiscordAPIError, match="Network error"):
-            await client.list_channels("guild1")
+            await client.list_channels("111222333444555666")

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from discord_mcp.types import Channel, Message, MessageAuthor, SendResult
+from discord_mcp.types import Channel, Message, MessageAuthor, SendResult, EmbedField
 from discord_mcp.server import resolve_guild_id, handle_list_channels, handle_send_message, handle_read_messages, handle_send_embed
 
 
@@ -86,7 +86,7 @@ class TestHandleSendEmbed:
             title="Deploy",
             description="Deployed v1.2",
             color=3447003,
-            fields=[{"name": "Status", "value": "OK", "inline": True}],
+            fields=[EmbedField(name="Status", value="OK", inline=True)],
             content=None,
         )
         assert result["message_id"] == "msg2"

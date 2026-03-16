@@ -5,6 +5,7 @@ import sys
 from mcp.server.fastmcp import FastMCP
 
 from discord_mcp.discord_client import DiscordClient, DiscordAPIError
+from discord_mcp.types import Embed, EmbedField
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,18 +83,19 @@ async def handle_send_embed(
     title: str,
     description: str | None,
     color: int | None,
-    fields: list[dict] | None,
+    fields: list[EmbedField] | None,
     content: str | None,
 ) -> dict:
     channel_id = await client.resolve_channel(channel, guild_id)
-    embed: dict = {"title": title}
-    if description is not None:
-        embed["description"] = description
-    if color is not None:
-        embed["color"] = color
-    if fields:
-        embed["fields"] = fields
-    result = await client.send_message(channel_id, content=content, embed=embed)
+    embed = Embed(
+        title=title,
+        description=description,
+        color=color,
+        fields=fields or [],
+    )
+    result = await client.send_message(
+        channel_id, content=content, embed=embed.model_dump(exclude_none=True)
+    )
     return {"message_id": result.id, "timestamp": result.timestamp}
 
 
@@ -162,7 +164,7 @@ async def discord_send_embed(
     title: str,
     description: str | None = None,
     color: int | None = None,
-    fields: list[dict] | None = None,
+    fields: list[EmbedField] | None = None,
     content: str | None = None,
     guild_id: str | None = None,
 ) -> str:

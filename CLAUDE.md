@@ -62,3 +62,8 @@ docker compose run --rm -i discord-mcp
 - Tests mock HTTP with `respx`, never hit real Discord API
 - Channel resolution is case-insensitive; numeric strings are treated as IDs
 - Guild ID fallback chain: explicit parameter → env var → None
+- Guild IDs and channel IDs must be validated as numeric snowflakes (`_validate_snowflake`) before URL interpolation
+- Embed payloads must go through Pydantic models (`Embed`/`EmbedField`) — never forward raw dicts to the API
+- Error messages must not enumerate server structure (e.g., channel lists)
+- Dependencies use compatible-release (`~=`) constraints, not open-ended `>=`
+- Docker container runs as non-root `appuser`

@@ -1,8 +1,18 @@
+import asyncio
+import re
+
 import httpx
 
 from discord_mcp.types import Channel, Message, SendResult
 
 BASE_URL = "https://discord.com/api/v10"
+
+_SNOWFLAKE_RE = re.compile(r"^\d{1,20}$")
+
+
+def _validate_snowflake(value: str, name: str) -> None:
+    if not _SNOWFLAKE_RE.match(value):
+        raise DiscordAPIError(f"Invalid {name}: must be a numeric ID")
 
 
 class DiscordAPIError(Exception):
@@ -24,12 +34,24 @@ class DiscordClient:
     async def close(self):
         await self._http.aclose()
 
-    async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
-        """Make an HTTP request, wrapping network errors as DiscordAPIError."""
+    async def _request(
+        self, method: str, path: str, _retries: int = 1, **kwargs
+    ) -> httpx.Response:
+        """Make an HTTP request, retrying once on rate limit."""
         try:
             resp = await self._http.request(method, path, **kwargs)
         except httpx.HTTPError as e:
             raise DiscordAPIError(f"Network error: {e}") from e
+        if resp.status_code == 429 and _retries > 0:
+            body = {}
+            try:
+                body = resp.json()
+            except Exception:
+                pass
+            retry_after = float(body.get("retry_after", 1))
+            retry_after = min(retry_after, 5.0)
+            await asyncio.sleep(retry_after)
+            return await self._request(method, path, _retries=_retries - 1, **kwargs)
         self._check_response(resp)
         return resp
 
@@ -55,6 +77,7 @@ class DiscordClient:
 
     async def list_all_channels(self, guild_id: str) -> list[Channel]:
         """Fetch all channels (all types) for a guild. Used for category name resolution."""
+        _validate_snowflake(guild_id, "guild_id")
         resp = await self._request("GET", f"/guilds/{guild_id}/channels")
         return [Channel(**ch) for ch in resp.json()]
 
@@ -69,7 +92,7 @@ class DiscordClient:
         return text_channels
 
     async def resolve_channel(self, channel: str, guild_id: str | None) -> str:
-        if channel.isdigit():
+        if _SNOWFLAKE_RE.match(channel):
             return channel
         if not guild_id:
             raise DiscordAPIError(
@@ -79,9 +102,8 @@ class DiscordClient:
         for ch in channels:
             if ch.name.lower() == channel.lower():
                 return ch.id
-        available = ", ".join(ch.name for ch in channels)
         raise DiscordAPIError(
-            f"Channel '{channel}' not found in guild. Available text channels: {available}"
+            f"Channel '{channel}' not found in guild"
         )
 
     async def send_message(
@@ -90,6 +112,7 @@ class DiscordClient:
         content: str | None = None,
         embed: dict | None = None,
     ) -> SendResult:
+        _validate_snowflake(channel_id, "channel_id")
         payload: dict = {}
         if content is not None:
             payload["content"] = content
@@ -99,6 +122,7 @@ class DiscordClient:
         return SendResult(**resp.json())
 
     async def read_messages(self, channel_id: str, limit: int = 10) -> list[Message]:
+        _validate_snowflake(channel_id, "channel_id")
         clamped = min(max(limit, 1), 50)
         resp = await self._request(
             "GET", f"/channels/{channel_id}/messages", params={"limit": str(clamped)}
