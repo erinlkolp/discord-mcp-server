@@ -103,7 +103,7 @@ Sends a plain text message to a channel.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `channel` | string | Yes | Channel ID or name (e.g. `"general"`) |
-| `content` | string | Yes | Message text |
+| `content` | string | Yes | Message text (max 2000 chars) |
 | `guild_id` | string | No | Server ID. Required if channel is a name and no default is set. |
 
 ### discord_read_messages
@@ -123,10 +123,10 @@ Sends a rich embed message to a channel.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `channel` | string | Yes | Channel ID or name |
-| `title` | string | Yes | Embed title |
-| `description` | string | No | Embed body text |
+| `title` | string | Yes | Embed title (max 256 chars) |
+| `description` | string | No | Embed body text (max 4096 chars) |
 | `color` | integer | No | Color as decimal (e.g. `3447003` for blue) |
-| `fields` | list | No | List of `{name, value, inline}` objects |
+| `fields` | list | No | List of `{name, value, inline}` objects (max 25 fields) |
 | `content` | string | No | Plain text alongside the embed |
 | `guild_id` | string | No | Server ID. Required if channel is a name and no default is set. |
 
@@ -143,7 +143,7 @@ Sends a rich embed message to a channel.
 Claude Code  ←stdio→  MCP Server (Python)  ←HTTPS→  Discord API v10
 ```
 
-- **`src/discord_mcp/types.py`** — Pydantic models for API responses (Channel, Message, SendResult, Embed)
+- **`src/discord_mcp/types.py`** — Pydantic models with Discord API limit validation (Channel, Message, SendResult, Embed)
 - **`src/discord_mcp/discord_client.py`** — Async Discord REST API wrapper using httpx
 - **`src/discord_mcp/server.py`** — MCP tool definitions and handler functions
 
@@ -156,11 +156,13 @@ Key design decisions:
 ## Security
 
 - **Input validation** — Guild IDs and channel IDs are validated as numeric Discord snowflakes before use in API URLs
+- **Content length enforcement** — Message content (2000 chars) and all embed fields (title 256, description 4096, field name 256, field value 1024, max 25 fields, 6000 total) are validated before sending to the Discord API
 - **Embed sanitization** — Embed fields are validated through Pydantic models (`EmbedField`), preventing injection of arbitrary embed properties
 - **Error message hygiene** — Failed channel lookups do not enumerate available channels, preventing server structure disclosure
 - **Rate limit handling** — The client retries once with backoff on 429 responses (capped at 5s)
 - **Docker hardening** — Container runs as a non-root `appuser`
-- **Dependency pinning** — Runtime dependencies use compatible-release (`~=`) constraints to prevent unexpected breaking changes
+- **Dependency pinning** — All dependencies (production and dev) use compatible-release (`~=`) constraints
+- **Reproducible builds** — `requirements-lock.txt` pins all transitive dependency versions; Docker builds install from the lock file
 
 ## Development
 

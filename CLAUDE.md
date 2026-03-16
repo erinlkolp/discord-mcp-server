@@ -14,14 +14,14 @@ Discord MCP server — exposes Discord REST API v10 as tools in Claude Code via 
 
 ```
 src/discord_mcp/
-├── types.py           — Pydantic models (Channel, Message, SendResult, Embed)
+├── types.py           — Pydantic models with Discord API limit validation (Channel, Message, SendResult, Embed)
 ├── discord_client.py  — Async Discord REST API wrapper (httpx)
 └── server.py          — MCP tool definitions and handler functions
 
 tests/
 ├── conftest.py           — Shared fixtures (sample channels, messages)
-├── test_types.py         — Pydantic model tests (7 tests)
-├── test_discord_client.py — API client tests with respx mocking (14 tests)
+├── test_types.py         — Pydantic model + validation tests (13 tests)
+├── test_discord_client.py — API client tests with respx mocking (15 tests)
 └── test_server.py        — MCP tool handler tests (7 tests)
 ```
 
@@ -64,6 +64,8 @@ docker compose run --rm -i discord-mcp
 - Guild ID fallback chain: explicit parameter → env var → None
 - Guild IDs and channel IDs must be validated as numeric snowflakes (`_validate_snowflake`) before URL interpolation
 - Embed payloads must go through Pydantic models (`Embed`/`EmbedField`) — never forward raw dicts to the API
+- Discord API limits are enforced via Pydantic validators in `types.py` (embed title 256, description 4096, field name 256, field value 1024, max 25 fields, total 6000 chars) and content length check (2000 chars) in `DiscordClient.send_message`
 - Error messages must not enumerate server structure (e.g., channel lists)
-- Dependencies use compatible-release (`~=`) constraints, not open-ended `>=`
+- All dependencies (production and dev) use compatible-release (`~=`) constraints, not open-ended `>=`
+- `requirements-lock.txt` pins all transitive dependencies for reproducible Docker builds
 - Docker container runs as non-root `appuser`
